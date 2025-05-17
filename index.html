@@ -4,16 +4,112 @@
   <meta charset="UTF-8" />
   <title>人物分類顯示</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; }
-    button { margin: 5px; padding: 10px; border: none; background: none; }
-    .person img { width: 60px; height: 60px; border-radius: 8px; display: block; }
-    .highlight { font-weight: bold; color: red; }
-    .category { margin-top: 20px; }
-    .suggestion { color: green; font-style: italic; }
-    .score { margin-top: 20px; font-size: 18px; color: blue; }
-    .group-section { margin-bottom: 20px; }
-    #toggle-all { margin: 10px 0; padding: 5px 10px; }
-    .captain-label { font-size: 12px; color: white; background: darkred; padding: 2px 4px; margin-top: 4px; border-radius: 3px; display: block; text-align: center; }
+    body {
+      font-family: "Segoe UI", "Noto Sans TC", sans-serif;
+      background: #f6f9f8;
+      padding: 20px;
+      color: #333;
+    }
+
+    h1 {
+      font-size: 28px;
+      color: #2c3e50;
+    }
+
+    button {
+      border: none;
+      background: none;
+      cursor: pointer;
+    }
+
+    #toggle-all {
+      background: #6abf69;
+      color: white;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 16px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: background 0.3s;
+    }
+
+    #toggle-all:hover {
+      background: #58a85a;
+    }
+
+    .group-section {
+      margin-bottom: 24px;
+    }
+
+    .group-section h3 {
+      color: #34495e;
+      font-size: 20px;
+      margin-bottom: 12px;
+    }
+
+    .person {
+      display: inline-block;
+      margin: 6px;
+      text-align: center;
+      transition: transform 0.2s;
+    }
+
+    .person img {
+      width: 70px;
+      height: 70px;
+      border-radius: 12px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+      transition: transform 0.3s, box-shadow 0.3s;
+      border: 2px solid transparent;
+    }
+
+    .person img:hover {
+      transform: scale(1.08);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .person.selected img {
+      border-color: #6abf69;
+    }
+
+    .captain-label {
+      font-size: 12px;
+      background: #e74c3c;
+      color: white;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 4px;
+      display: inline-block;
+    }
+
+    .category {
+      margin-top: 20px;
+      background: white;
+      padding: 12px 16px;
+      border-radius: 10px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .category ul {
+      padding-left: 20px;
+    }
+
+    .highlight {
+      font-weight: bold;
+      color: #e67e22;
+    }
+
+    .suggestion {
+      color: #27ae60;
+      font-style: italic;
+      margin-left: 6px;
+    }
+
+    .score {
+      margin-top: 30px;
+      font-size: 20px;
+      color: #2980b9;
+    }
   </style>
 </head>
 <body>
@@ -79,6 +175,7 @@
 	"名都神無": { 團體: ["SFP"], 社團: [], 宿舍: ["105"], 洗牌團體: [], 隊長: "" }, 
 	"寶丈萊香": { 團體: ["SFP"], 社團: [], 宿舍: ["107"], 洗牌團體: [], 隊長: "" } 
     };
+
     const scoreMap = {1: 1, 2: 2, 3: 4, 4: 6, 5: 9};
     const selected = new Set();
     const personButtons = document.getElementById('person-buttons');
@@ -90,7 +187,7 @@
       if (!groupMap[group]) groupMap[group] = [];
       groupMap[group].push(name);
     }
-    const buttonElements = {};
+
     for (let group in groupMap) {
       const section = document.createElement('div');
       section.className = 'group-section';
@@ -118,15 +215,14 @@
         btn.onclick = () => {
           if (selected.has(name)) {
             selected.delete(name);
-            btn.style.background = '';
+            btn.classList.remove('selected');
           } else {
             selected.add(name);
-            btn.style.background = '#d3f';
+            btn.classList.add('selected');
           }
           showResults();
         };
 
-        buttonElements[name] = btn;
         section.appendChild(btn);
       });
       personButtons.appendChild(section);
@@ -134,9 +230,10 @@
 
     let hidden = false;
     document.getElementById('toggle-all').onclick = () => {
-      const allSections = document.querySelectorAll('.group-section');
       hidden = !hidden;
-      allSections.forEach(sec => sec.style.display = hidden ? 'none' : '');
+      document.querySelectorAll('.group-section').forEach(sec => {
+        sec.style.display = hidden ? 'none' : '';
+      });
       document.getElementById('toggle-all').textContent = hidden ? '顯示所有角色' : '隱藏所有角色';
     };
 
@@ -150,14 +247,17 @@
           });
         }
       });
+
       let output = '';
       let totalScore = 0;
+
       for (let cat of ['團體', '社團', '宿舍', '洗牌團體']) {
         output += `<div class="category"><strong>${cat}：</strong><ul>`;
         const relevant = {};
         [...selected].forEach(name => {
           data[name][cat].forEach(val => relevant[val] = true);
         });
+
         for (let key in categoryMap[cat]) {
           const members = categoryMap[cat][key];
           const inGroup = members.filter(n => selected.has(n));
@@ -176,12 +276,11 @@
         }
         output += '</ul></div>';
       }
-      // 隊長加分
+
       selected.forEach(name => {
-        if (data[name].隊長 === '是') {
-          totalScore += 1;
-        }
+        if (data[name].隊長 === '是') totalScore += 1;
       });
+
       results.innerHTML = output;
       scoreDiv.innerText = `當前分數：${totalScore} 分（含隊長加分）`;
     }
