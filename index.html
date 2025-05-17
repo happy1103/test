@@ -2,7 +2,7 @@
 <html lang="zh">
 <head>
   <meta charset="UTF-8" />
-  <title>人物分類顯示</title>
+  <title>合奏桌遊小工具</title>
   <style>
     body {
       font-family: "Segoe UI", "Noto Sans TC", sans-serif;
@@ -266,7 +266,7 @@
           output += `<li>${key}（${highlighted.join('，')}）`;
           if (inGroup.length === members.length - 1) {
             const missing = members.find(n => !selected.has(n));
-            output += ` <span class="suggestion">→ 建議蒐集：${missing}</span>`;
+            output += ` <span class="suggestion">→ 缺：${missing}</span>`;
           }
           output += '</li>';
           if (inGroup.length === members.length) {
@@ -282,9 +282,8 @@
       });
 
       results.innerHTML = output;
-      scoreDiv.innerText = `當前分數：${totalScore} 分（含隊長加分）`;
+      scoreDiv.innerText = `當前分數：${totalScore} 分`;
     }
   </script>
 </body>
 </html>
-
