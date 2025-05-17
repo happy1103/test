@@ -5,131 +5,93 @@
   <title>合奏桌遊小工具</title>
   <style>
     body {
-      font-family: "Segoe UI", "Noto Sans TC", sans-serif;
-      background: #f6f9f8;
+      font-family: sans-serif;
       padding: 20px;
+      background: #f9fafb;
       color: #333;
     }
-
-    h1 {
-      font-size: 28px;
-      color: #2c3e50;
-    }
-
-    button {
-      border: none;
-      background: none;
+    .group-toggle {
+      margin: 5px;
+      padding: 5px 10px;
+      border: 1px solid #ccc;
+      background: white;
       cursor: pointer;
+      border-radius: 5px;
     }
-
-    #toggle-all {
-      background: #6abf69;
+    .group-toggle.active-group {
+      background: #4caf50;
       color: white;
-      border-radius: 8px;
-      padding: 8px 16px;
-      font-size: 16px;
-      margin-bottom: 20px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      transition: background 0.3s;
+      border-color: #4caf50;
     }
-
-    #toggle-all:hover {
-      background: #58a85a;
-    }
-
     .group-section {
-      margin-bottom: 24px;
+      margin-bottom: 20px;
     }
-
-    .group-section h3 {
-      color: #34495e;
-      font-size: 20px;
-      margin-bottom: 12px;
+    h3 {
+      margin-bottom: 10px;
     }
-
     .person {
-      display: inline-block;
-      margin: 6px;
-      text-align: center;
-      transition: transform 0.2s;
+      border: 3px solid transparent;
+      padding: 0;
+      margin: 5px;
+      border-radius: 8px;
+      cursor: pointer;
+      background: none;
     }
-
+    .person.selected {
+      border: 3px solid #28a745;
+    }
     .person img {
-      width: 70px;
-      height: 70px;
-      border-radius: 12px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      transition: transform 0.3s, box-shadow 0.3s;
-      border: 2px solid transparent;
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 8px;
     }
-
-    .person img:hover {
-      transform: scale(1.08);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-    }
-
-    .person.selected img {
-      border: 4px solid #2ecc71;
-    }
-
     .captain-label {
-      font-size: 12px;
-      background: #e74c3c;
+      position: absolute;
+      bottom: 5px;
+      right: 5px;
+      font-size: 10px;
+      background: darkred;
       color: white;
-      padding: 2px 6px;
-      border-radius: 4px;
-      margin-top: 4px;
-      display: inline-block;
+      padding: 2px 4px;
+      border-radius: 3px;
     }
-
+    .score {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #1976d2;
+    }
     .category {
       margin-top: 20px;
-      background: white;
-      padding: 12px 16px;
-      border-radius: 10px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
     }
-
-    .category ul {
-      padding-left: 20px;
-    }
-
     .highlight {
       font-weight: bold;
-      color: #e67e22;
+      color: red;
     }
-
     .suggestion {
-      color: #27ae60;
+      color: green;
       font-style: italic;
-      margin-left: 6px;
-    }
-
-    .score {
-      margin-top: 30px;
-      font-size: 20px;
-      color: #2980b9;
-	  
-	.active-group {
-      background: #87cefa !important;
-
     }
   </style>
 </head>
 <body>
+  <h1>選擇人物</h1>
+
+  <!-- 群組選擇按鈕 -->
   <div id="group-toggles">
     <strong>計分群組：</strong>
     <button class="group-toggle" data-group="團體">團體</button>
     <button class="group-toggle" data-group="社團">社團</button>
     <button class="group-toggle" data-group="宿舍">宿舍</button>
     <button class="group-toggle" data-group="洗牌團體">洗牌團體</button>
+    <button class="group-toggle" data-group="隊長">隊長</button>
   </div>
 
-  <h1>選擇人物</h1>
   <button id="toggle-all">隱藏所有角色</button>
   <div id="person-buttons"></div>
   <div id="results"></div>
   <div class="score" id="score"></div>
+
   <script>
     const data = {
 	"天祥院英智": { 團體: ["fine"], 社團: ["運動生存者", "茶話會 茗味"], 宿舍: ["301"], 洗牌團體: ["Ring A Bell"], 隊長: "是" }, 
@@ -190,27 +152,31 @@
 
     const scoreMap = {1: 1, 2: 2, 3: 4, 4: 6, 5: 9};
     const selected = new Set();
-	const enabledGroups = new Set(); 
+    const enabledGroups = new Set();
+
     const personButtons = document.getElementById('person-buttons');
     const results = document.getElementById('results');
     const scoreDiv = document.getElementById('score');
     const groupMap = {};
+    const buttonElements = {};
+
     for (let name in data) {
       const group = data[name].團體[0];
       if (!groupMap[group]) groupMap[group] = [];
       groupMap[group].push(name);
     }
 
-    const buttonElements = {};
     for (let group in groupMap) {
       const section = document.createElement('div');
       section.className = 'group-section';
       section.dataset.group = group;
+
       const title = document.createElement('h4');
       title.textContent = `團體 ${group}`;
       section.appendChild(title);
+
       groupMap[group].forEach(name => {
-        const btn = document.createElement('div');
+        const btn = document.createElement('button');
         btn.className = 'person';
         btn.dataset.name = name;
 
@@ -218,11 +184,15 @@
         img.src = `image/${name}.jpg`;
         img.alt = name;
 
-        const label = document.createElement('div');
-        label.innerHTML = `${name}${data[name].隊長 === '是' ? '<span class="captain-label">隊長</span>' : ''}`;
-
         btn.appendChild(img);
-        btn.appendChild(label);
+        if (data[name].隊長 === '是') {
+          const label = document.createElement('div');
+          label.className = 'captain-label';
+          label.textContent = '隊長';
+          btn.style.position = 'relative';
+          btn.appendChild(label);
+        }
+
         btn.onclick = () => {
           if (selected.has(name)) {
             selected.delete(name);
@@ -237,15 +207,9 @@
         buttonElements[name] = btn;
         section.appendChild(btn);
       });
+
       personButtons.appendChild(section);
     }
-
-    document.getElementById('toggle-all').onclick = () => {
-      const allSections = document.querySelectorAll('.group-section');
-      hidden = !hidden;
-      allSections.forEach(sec => sec.style.display = hidden ? 'none' : '');
-      document.getElementById('toggle-all').textContent = hidden ? '顯示所有角色' : '隱藏所有角色';
-    };
 
     document.querySelectorAll('.group-toggle').forEach(btn => {
       btn.onclick = () => {
@@ -261,6 +225,13 @@
       };
     });
 
+    document.getElementById('toggle-all').onclick = () => {
+      const allSections = document.querySelectorAll('.group-section');
+      const hidden = allSections[0].style.display !== 'none';
+      allSections.forEach(sec => sec.style.display = hidden ? 'none' : '');
+      document.getElementById('toggle-all').textContent = hidden ? '顯示所有角色' : '隱藏所有角色';
+    };
+
     function showResults() {
       const categoryMap = { 團體: {}, 社團: {}, 宿舍: {}, 洗牌團體: {} };
       Object.entries(data).forEach(([name, attrs]) => {
@@ -274,7 +245,7 @@
 
       let output = '';
       let totalScore = 0;
-      let groupScores = { 團體: 0, 社團: 0, 宿舍: 0, 洗牌團體: 0 };
+      let groupScores = { 團體: 0, 社團: 0, 宿舍: 0, 洗牌團體: 0, 隊長: 0 };
 
       for (let cat of ['團體', '社團', '宿舍', '洗牌團體']) {
         output += `<div class="category"><strong>${cat}：</strong><ul>`;
@@ -287,7 +258,6 @@
           const members = categoryMap[cat][key];
           const inGroup = members.filter(n => selected.has(n));
           if (!relevant[key]) continue;
-
           const highlighted = members.map(n => selected.has(n) ? `<span class="highlight">「${n}」</span>` : n);
           output += `<li>${key}（${highlighted.join('，')}）`;
           if (inGroup.length === members.length - 1) {
@@ -297,28 +267,36 @@
           output += '</li>';
 
           if (inGroup.length === members.length && enabledGroups.has(cat)) {
-            const size = members.length;
-            const score = scoreMap[size] || 0;
+            const score = scoreMap[members.length] || 0;
             groupScores[cat] += score;
             totalScore += score;
           }
         }
+
         output += '</ul></div>';
       }
 
-      // 隊長加分（總是加分）
-      selected.forEach(name => {
-        if (data[name].隊長 === '是') {
-          totalScore += 1;
-        }
-      });
+      if (enabledGroups.has('隊長')) {
+        selected.forEach(name => {
+          if (data[name].隊長 === '是') {
+            groupScores['隊長'] += 1;
+            totalScore += 1;
+          }
+        });
+      }
 
       results.innerHTML = output;
-      scoreDiv.innerHTML = `當前分數：<strong>${totalScore}</strong> 分 <br>
+      scoreDiv.innerHTML = `當前分數：<strong>${totalScore}</strong> 分<br>
         <ul>
-          ${Object.entries(groupScores).map(([cat, s]) => `<li>${cat}：${s} 分</li>`).join('')}
+          ${Object.entries(groupScores)
+            .map(([cat, s]) => `<li>${cat}：${s} 分 </li>`)
+            .join('')}
         </ul>`;
     }
   </script>
 </body>
 </html>
+
+如需加入更多人物或進一步美化，可再告訴我！
+
+
