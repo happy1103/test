@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8" />
+  <title>人物分類顯示</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; }
+    button { margin: 5px; padding: 10px; }
+    .highlight { font-weight: bold; color: red; }
+    .category { margin-top: 20px; }
+    .suggestion { color: green; font-style: italic; }
+    .score { margin-top: 20px; font-size: 18px; color: blue; }
+    .group-section { margin-bottom: 20px; }
+    #toggle-all { margin: 10px 0; padding: 5px 10px; }
+    .captain-label { font-size: 12px; color: white; background: darkred; padding: 2px 4px; margin-left: 5px; border-radius: 3px; }
+  </style>
+</head>
+<body>
+  <h1>選擇人物</h1>
+  <button id="toggle-all">隱藏所有角色</button>
+  <div id="person-buttons"></div>
+  <div id="results"></div>
+  <div class="score" id="score"></div>
+
+  <script>
+    const data = {
+      小明: { 團體: ['A'], 社團: ['漫畫社','手語社'], 宿舍: ['101'], 洗牌團體: ['泡泡隊'], 隊長: '是' },
+      小美: { 團體: ['A'], 社團: ['漫畫社','自然社','田徑隊'], 宿舍: ['102'], 洗牌團體: ['泡泡隊'], 隊長: '' },
+      小安: { 團體: ['A'], 社團: ['資訊社','漫畫社'], 宿舍: ['102'], 洗牌團體: [], 隊長: '' },
+      小泉: { 團體: ['B'], 社團: ['自然社','手語社'], 宿舍: ['103'], 洗牌團體: [], 隊長: '' },
+      小陳: { 團體: ['B'], 社團: ['田徑隊','手語社'], 宿舍: ['101'], 洗牌團體: [], 隊長: '' },
+      小西: { 團體: ['B'], 社團: ['手語社','管樂隊'], 宿舍: ['104'], 洗牌團體: [], 隊長: '' },
+      小白: { 團體: ['C'], 社團: ['漫畫社','管樂隊'], 宿舍: ['101'], 洗牌團體: [], 隊長: '' },
+      小仁: { 團體: ['C'], 社團: ['自然社','田徑隊'], 宿舍: ['104'], 洗牌團體: [], 隊長: '' },
+      小山: { 團體: ['C'], 社團: ['資訊社','自然社','手語社'], 宿舍: ['103'], 洗牌團體: [], 隊長: '' },
+      小夫: { 團體: ['C'], 社團: ['田徑隊','手語管樂隊'], 宿舍: ['102'], 洗牌團體: [], 隊長: '' }
+    };
+
+    const scoreMap = {1: 1, 2: 2, 3: 4, 4: 6, 5: 9};
+    const selected = new Set();
+    const personButtons = document.getElementById('person-buttons');
+    const results = document.getElementById('results');
+    const scoreDiv = document.getElementById('score');
+
+    const groupMap = {};
+    for (let name in data) {
+      const group = data[name].團體[0];
+      if (!groupMap[group]) groupMap[group] = [];
+      groupMap[group].push(name);
+    }
+
+    const buttonElements = {};
+
+    for (let group in groupMap) {
+      const section = document.createElement('div');
+      section.className = 'group-section';
+      section.dataset.group = group;
+      const title = document.createElement('h3');
+      title.textContent = `團體 ${group}`;
+      section.appendChild(title);
+
+      groupMap[group].forEach(name => {
+        const btn = document.createElement('button');
+        btn.className = 'person';
+        btn.dataset.name = name;
+
+        const label = data[name].隊長 === '是' ? ' <span class="captain-label">隊長</span>' : '';
+        btn.innerHTML = `${name}${label}`;
+
+        btn.onclick = () => {
+          if (selected.has(name)) {
+            selected.delete(name);
+            btn.style.background = '';
+          } else {
+            selected.add(name);
+            btn.style.background = '#d3f';
+          }
+          showResults();
+        };
+        buttonElements[name] = btn;
+        section.appendChild(btn);
+      });
+
+      personButtons.appendChild(section);
+    }
+
+    let hidden = false;
+    document.getElementById('toggle-all').onclick = () => {
+      const allSections = document.querySelectorAll('.group-section');
+      hidden = !hidden;
+      allSections.forEach(sec => sec.style.display = hidden ? 'none' : '');
+      document.getElementById('toggle-all').textContent = hidden ? '顯示所有角色' : '隱藏所有角色';
+    };
+
+    function showResults() {
+      const categoryMap = { 團體: {}, 社團: {}, 宿舍: {}, 洗牌團體: {} };
+      Object.entries(data).forEach(([name, attrs]) => {
+        for (let cat of ['團體', '社團', '宿舍', '洗牌團體']) {
+          attrs[cat].forEach(value => {
+            if (!categoryMap[cat][value]) categoryMap[cat][value] = [];
+            categoryMap[cat][value].push(name);
+          });
+        }
+      });
+
+      let output = '';
+      let totalScore = 0;
+
+      for (let cat of ['團體', '社團', '宿舍', '洗牌團體']) {
+        output += `<div class="category"><strong>${cat}：</strong><ul>`;
+        const relevant = {};
+        [...selected].forEach(name => {
+          data[name][cat].forEach(val => relevant[val] = true);
+        });
+        for (let key in categoryMap[cat]) {
+          const members = categoryMap[cat][key];
+          const inGroup = members.filter(n => selected.has(n));
+          if (!relevant[key]) continue;
+
+          const highlighted = members.map(n => selected.has(n) ? `<span class="highlight">「${n}」</span>` : n);
+          output += `<li>${key}（${highlighted.join('，')}）`;
+
+          if (inGroup.length === members.length - 1) {
+            const missing = members.find(n => !selected.has(n));
+            output += ` <span class="suggestion">→ 建議蒐集：${missing}</span>`;
+          }
+
+          output += '</li>';
+
+          if (inGroup.length === members.length) {
+            const size = members.length;
+            totalScore += scoreMap[size] || 0;
+          }
+        }
+        output += '</ul></div>';
+      }
+
+      // 隊長加分
+      selected.forEach(name => {
+        if (data[name].隊長 === '是') {
+          totalScore += 1;
+        }
+      });
+
+      results.innerHTML = output;
+      scoreDiv.innerText = `當前分數：${totalScore} 分（含隊長加分）`;
+    }
+  </script>
+</body>
+</html>
